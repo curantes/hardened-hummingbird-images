@@ -81,10 +81,11 @@ jobs:
       - name: Set Short Git SHA & Lowercase Repo
         id: repo
         run: |
-          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "lowercase=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          echo "short_sha=\((git rev-parse --short HEAD)" >>\)GITHUB_OUTPUT
+          echo "lowercase=\((echo "\){{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Build Production Image (Buildah)
+        id: build
         uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
           image: ${{ steps.repo.outputs.lowercase }}/core-runtime
@@ -107,15 +108,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Format Digest for SLSA
+      - name: Extract & Format Digest for SLSA
         id: digest
         run: |
-          RAW_DIGEST="${{ steps.push.outputs.registry-digest }}"
-          if [[ "$RAW_DIGEST" != sha256:* ]]; then
-            echo "formatted=sha256:${RAW_DIGEST}" >> $GITHUB_OUTPUT
-          else
-            echo "formatted=${RAW_DIGEST}" >> $GITHUB_OUTPUT
+          # Försök ta digest från push-steget, annars hämta via buildah inspect
+          DIGEST="${{ steps.push.outputs.registry-digest }}"
+          if [ -z "$DIGEST" ]; then
+            DIGEST=\((buildah inspect --format '{{.FromImageDigest}}' "\){{ steps.build.outputs.image }}")
           fi
+          
+          # Ta bort eventuellt sha256: prefix först för att undvika sha256:sha256:
+          RAW_HASH="${DIGEST#sha256:}"
+          
+          echo "formatted=sha256:\({RAW_HASH}" >>\)GITHUB_OUTPUT
 
   slsa-provenance:
     name: Generate SLSA 3 Provenance
