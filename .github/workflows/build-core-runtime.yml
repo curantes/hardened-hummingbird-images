@@ -25,7 +25,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout Source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Lint Containerfile (Hadolint)
         uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
@@ -34,7 +34,7 @@ jobs:
 
       - name: Build OCI Image (Buildah)
         id: build-image
-        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
+        uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
           image: hardened-core-runtime
           tags: ${{ github.sha }}
@@ -53,7 +53,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy Scan Results to GitHub Security
-        uses: github/codeql-action/upload-sarif@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3.38.2
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -73,13 +73,13 @@ jobs:
       image-digest: ${{ steps.push.outputs.registry-digest }}
     steps:
       - name: Checkout Source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
       - name: Build Production Image
-        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
+        uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
           image: ${{ github.repository_owner }}/hardened-hummingbird-images
           tags: core-runtime core-runtime-${{ github.sha }}
@@ -89,7 +89,7 @@ jobs:
 
       - name: Push to GHCR
         id: push
-        uses: redhat-actions/push-to-registry@5101662c64e528148cf496735e5d1607ef3fca7c # v2.8.0
+        uses: redhat-actions/push-to-registry@94ade333c38ecc0e60e94785125d9a52ca423b37 # v3.0.0
         with:
           image: ${{ github.repository_owner }}/hardened-hummingbird-images
           tags: core-runtime core-runtime-${{ github.sha }}

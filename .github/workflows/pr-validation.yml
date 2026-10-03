@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Lint Containerfile (Hadolint)
         uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
@@ -37,7 +37,7 @@ jobs:
 
       - name: Build OCI Image (Buildah)
         id: build-image
-        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
+        uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
           image: hardened-${{ matrix.image.name }}
           tags: pr-${{ github.event.pull_request.number }}
