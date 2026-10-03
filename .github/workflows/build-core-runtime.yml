@@ -71,9 +71,8 @@ jobs:
     permissions:
       contents: read
       packages: write
-    outputs:
-      image-digest: ${{ steps.build-push.outputs.digest }}
-      image-name: ${{ steps.meta.outputs.bake-target }}
+      id-token: write      # Krävs för SLSA-intyg via GitHub
+      attestations: write  # Krävs för att skriva attesteringar
     steps:
       - name: Checkout Source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -108,18 +107,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          provenance: false # SLSA 3-generatorn i nästa jobb skapar provenance
 
-  slsa-provenance:
-    name: Generate SLSA 3 Provenance
-    needs: publish-image
-    permissions:
-      actions: read
-      id-token: write
-      packages: write
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
-    with:
-      image: ghcr.io/${{ needs.publish-image.outputs.image-name }}/core-runtime
-      digest: ${{ needs.publish-image.outputs.image-digest }}
-    secrets:
-      registry-password: ${{ secrets.GITHUB_TOKEN }}
+      # Genererar och publicerar SLSA Provenance direkt i GHCR
+      - name: Generate Artifact Attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/${{ github.repository }}/core-runtime
+          subject-digest: ${{ steps.build-push.outputs.digest }}
+          push-to-registry: true
