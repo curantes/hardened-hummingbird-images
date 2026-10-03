@@ -77,11 +77,17 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Set Short Git SHA
+        id: vars
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Build Production Image (Buildah)
         uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
-          image: ${{ github.repository_owner }}/core-runtime
-          tags: core-runtime core-runtime-${{ github.sha }}
+          image: ${{ github.repository_owner }}/hardened-core-runtime
+          tags: |
+            latest
+            ${{ steps.vars.outputs.short_sha }}
           context: ./images/core-runtime
           containerfiles: ./images/core-runtime/Containerfile
           oci: true
@@ -91,7 +97,9 @@ jobs:
         uses: redhat-actions/push-to-registry@94ade333c38ecc0e60e94785125d9a52ca423b37 # v3.0.0
         with:
           image: ${{ github.repository_owner }}/core-runtime
-          tags: core-runtime core-runtime-${{ github.sha }}
+          tags: |
+            latest
+            ${{ steps.vars.outputs.short_sha }}
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
