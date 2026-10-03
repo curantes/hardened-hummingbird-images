@@ -80,7 +80,7 @@ jobs:
       - name: Build Production Image (Buildah)
         uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
-          image: ${{ github.repository_owner }}/hardened-hummingbird-images
+          image: ${{ github.repository_owner }}/core-runtime
           tags: core-runtime core-runtime-${{ github.sha }}
           context: ./images/core-runtime
           containerfiles: ./images/core-runtime/Containerfile
@@ -90,7 +90,7 @@ jobs:
         id: push
         uses: redhat-actions/push-to-registry@94ade333c38ecc0e60e94785125d9a52ca423b37 # v3.0.0
         with:
-          image: ${{ github.repository_owner }}/hardened-hummingbird-images
+          image: ${{ github.repository_owner }}/core-runtime
           tags: core-runtime core-runtime-${{ github.sha }}
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -105,7 +105,7 @@ jobs:
       packages: write
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
     with:
-      image: ghcr.io/${{ github.repository_owner }}/hardened-hummingbird-images
+      image: ghcr.io/${{ github.repository_owner }}/core-runtime
       digest: ${{ needs.publish-image.outputs.image-digest }}
     secrets:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
