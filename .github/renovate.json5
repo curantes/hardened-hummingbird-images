@@ -15,7 +15,7 @@
         "actions/attest-docker-build",
         "actions/attest-build-provenance"
       ],
-      "datasource": "github-releases"
+      "overrideDatasource": "github-releases"
     },
     {
       "matchPackageNames": ["registry.access.redhat.com/hi/static"],
