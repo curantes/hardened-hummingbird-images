@@ -84,7 +84,7 @@ jobs:
       - name: Build Production Image (Buildah)
         uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
-          image: ${{ github.repository_owner }}/hardened-core-runtime
+          image: ${{ github.repository_owner }}/core-runtime
           tags: |
             latest
             ${{ steps.vars.outputs.short_sha }}
