@@ -1,0 +1,13 @@
+ARG RUNTIME_DIGEST=sha256:33298f8033374ed83de9649dda5f5589fefa03390e1dc856cca6a9d7de619822
+
+# Core runtime base image from Red Hat Container Registry
+FROM registry.access.redhat.com/hi/core-runtime:latest@${RUNTIME_DIGEST}
+
+LABEL org.opencontainers.image.title="Hardened Core Runtime Base Image (based on Red Hat Core Runtime)" \
+      org.opencontainers.image.vendor="Curantes" \
+      org.opencontainers.image.source="https://github.com/curantes/hardened-hummingbird-images" \
+      org.opencontainers.image.base.name="registry.access.redhat.com/hi/core-runtime:latest" \
+      org.opencontainers.image.base.digest="${RUNTIME_DIGEST}"
+
+# Built-in non-root execution context (UID 10001)
+USER 10001:10001

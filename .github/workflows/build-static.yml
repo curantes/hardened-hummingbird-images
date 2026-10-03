@@ -1,0 +1,126 @@
+name: Factory - Static Image
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'images/static/**'
+      - '.github/workflows/build-static.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'images/static/**'
+  schedule:
+    - cron: '0 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-audit:
+    name: Build & Audit Static
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Lint Containerfile (Hadolint)
+        uses: hadolint/hadolint-action@54c226d9c62391e84d5f479dce9e89791823f663 # v3.1.0
+        with:
+          dockerfile: images/static/Containerfile
+
+      - name: Build OCI Image (Buildah)
+        id: build-image
+        uses: redhat-actions/buildah-build@b4dc372f53d4ebc3b6a7d8a6df201e52382046e7 # v2.8.0
+        with:
+          image: hardened-static
+          tags: ${{ github.sha }}
+          context: ./images/static
+          containerfiles: ./images/static/Containerfile
+          oci: true
+
+      - name: Vulnerability Audit with Trivy (SARIF)
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402250b237b462a86219b4 # v0.29.0
+        with:
+          image-ref: 'hardened-static:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy Scan Results to GitHub Security
+        uses: github/codeql-action/upload-sarif@dd744d5a6737080a229a43a0e6e73752766f6889 # v3.28.10
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  publish-sign-attest:
+    name: Publish, Sign & Attest Static
+    needs: build-and-audit
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    outputs:
+      image-digest: ${{ steps.push.outputs.registry-digest }}
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bec8236c6f33d7b420f18bdc # v3.7.0
+
+      - name: Build Production Image
+        uses: redhat-actions/buildah-build@b4dc372f53d4ebc3b6a7d8a6df201e52382046e7 # v2.8.0
+        with:
+          image: ${{ github.repository_owner }}/hardened-hummingbird-images
+          tags: static static-${{ github.sha }}
+          context: ./images/static
+          containerfiles: ./images/static/Containerfile
+          oci: true
+
+      - name: Push to GHCR
+        id: push
+        uses: redhat-actions/push-to-registry@5101662c64e528148cf496735e5d1607ef3fca7c # v2.8.0
+        with:
+          image: ${{ github.repository_owner }}/hardened-hummingbird-images
+          tags: static static-${{ github.sha }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate SPDX SBOM (Syft)
+        uses: anchore/sbom-action@f325610c28d51684896fc783427958f335fb6ec1 # v0.17.9
+        with:
+          image: ghcr.io/\({{ github.repository_owner }}/hardened-hummingbird-images:static-\){{ github.sha }}
+          format: spdx-json
+          output-file: sbom-static.spdx.json
+
+      - name: Cosign OIDC Keyless Sign & Attach Attestation
+        run: |
+          IMAGE_REF="ghcr.io/\({{ github.repository_owner }}/hardened-hummingbird-images:static-\){{ github.sha }}"
+          DIGEST="${{ steps.push.outputs.registry-digest }}"
+          cosign sign --yes "\({IMAGE_REF}@\){DIGEST}"
+          cosign attest --yes --predicate sbom-static.spdx.json --type spdx "\({IMAGE_REF}@\){DIGEST}"
+
+  slsa-provenance:
+    name: Generate SLSA 3 Provenance
+    needs: publish-sign-attest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      actions: read
+      id-token: write
+      packages: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0
+    with:
+      image: ghcr.io/${{ github.repository_owner }}/hardened-hummingbird-images
+      digest: ${{ needs.publish-sign-attest.outputs.image-digest }}
+    secrets:
+      registry-username: ${{ github.actor }}
+      registry-password: ${{ secrets.GITHUB_TOKEN }}

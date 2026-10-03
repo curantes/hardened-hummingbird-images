@@ -1,0 +1,36 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":pinDigests"
+  ],
+  "labels": ["dependencies", "container-factory"],
+  "assignees": ["@curantes/maintainers"],
+  "packageRules": [
+    {
+      "matchPackageNames": ["registry.access.redhat.com/hi/static"],
+      "groupName": "hummingbird-static-base",
+      "commitMessageTopic": "base image registry.access.redhat.com/hi/static"
+    },
+    {
+      "matchPackageNames": ["registry.access.redhat.com/hi/core-runtime"],
+      "groupName": "hummingbird-core-runtime-base",
+      "commitMessageTopic": "base image registry.access.redhat.com/hi/core-runtime"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions-dependencies",
+      "schedule": ["before 4am on monday"]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^images/.*/Containerfile$"],
+      "matchStrings": [
+        "ARG RUNTIME_DIGEST=(?<currentDigest>sha256:[a-f0-9]{64})\\nFROM (?<depName>[^:]+):(?<currentValue>[^@]+)@\\${RUNTIME_DIGEST}"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}

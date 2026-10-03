@@ -1,0 +1,30 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-hummingbird-images
+  annotations:
+    policies.kyverno.io/title: Verify Hardened Hummingbird OCI Signatures
+    policies.kyverno.io/subject: Pod, Deployment, StatefulSet
+    policies.kyverno.io/description: >-
+      Ensures that images pulled from ghcr.io/curantes/hardened-hummingbird-images
+      are keylessly signed by GitHub Actions using Cosign.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: verify-cosign-signature
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/curantes/hardened-hummingbird-images:*"
+          attestors:
+            - entries:
+                - keyless:
+                    issuer: https://token.actions.githubusercontent.com
+                    subject: "https://github.com/curantes/hardened-hummingbird-images/.github/workflows/*@refs/heads/main"
+                    rekor:
+                      url: https://rekor.sigstore.dev
