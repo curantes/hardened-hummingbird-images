@@ -17,9 +17,11 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Generate Release Tag
+      - name: Generate CalVer Release Tag
         id: tag
-        run: echo "tag_name=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+        run: |
+          DATE_TAG=$(date +'%Y.%m.%d')
+          echo "tag_name=v${DATE_TAG}-${{ github.run_number }}" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
