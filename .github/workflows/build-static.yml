@@ -112,7 +112,7 @@ jobs:
           cosign attest --yes --predicate sbom-static.spdx.json --type spdx "\({IMAGE_REF}@\){DIGEST}"
 
       - name: Generate SLSA Provenance Attestation (Native)
-        uses: actions/attest-docker-build@v1
+        uses: actions/attest-docker-build@v2
         with:
           subject-name: ghcr.io/${{ github.repository_owner }}/hardened-hummingbird-images
           subject-digest: ${{ steps.push.outputs.registry-digest }}
