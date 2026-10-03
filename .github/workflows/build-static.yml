@@ -110,12 +110,15 @@ jobs:
 
       - name: Extract & Format Digest for SLSA
         id: digest
+        env:
+          PUSH_DIGEST: ${{ steps.push.outputs.registry-digest }}
+          BUILD_IMAGE: ${{ steps.build.outputs.image }}
         run: |
-          DIGEST="${{ steps.push.outputs.registry-digest }}"
-          if [ -z "$DIGEST" ]; then
-            DIGEST=\((buildah inspect --format '{{.FromImageDigest}}' "\){{ steps.build.outputs.image }}")
+          if [ -n "$PUSH_DIGEST" ]; then
+            DIGEST="$PUSH_DIGEST"
+          else
+            DIGEST=(buildah inspect --format '{{.FromImageDigest}}' "BUILD_IMAGE")
           fi
-          
           RAW_HASH="${DIGEST#sha256:}"
           echo "formatted=sha256:\({RAW_HASH}" >>\)GITHUB_OUTPUT
 

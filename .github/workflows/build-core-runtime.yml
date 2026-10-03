@@ -110,17 +110,17 @@ jobs:
 
       - name: Extract & Format Digest for SLSA
         id: digest
+        env:
+          PUSH_DIGEST: ${{ steps.push.outputs.registry-digest }}
+          BUILD_IMAGE: ${{ steps.build.outputs.image }}
         run: |
-          # Försök ta digest från push-steget, annars hämta via buildah inspect
-          DIGEST="${{ steps.push.outputs.registry-digest }}"
-          if [ -z "$DIGEST" ]; then
-            DIGEST=\((buildah inspect --format '{{.FromImageDigest}}' "\){{ steps.build.outputs.image }}")
+          if [ -n "$PUSH_DIGEST" ]; then
+            DIGEST="$PUSH_DIGEST"
+          else
+            DIGEST=(buildah inspect --format '{{.FromImageDigest}}' "BUILD_IMAGE")
           fi
-          
-          # Ta bort eventuellt sha256: prefix först för att undvika sha256:sha256:
           RAW_HASH="${DIGEST#sha256:}"
-          
-          echo "formatted=sha256:\({RAW_HASH}" >>\)GITHUB_OUTPUT
+          echo "formatted=sha256:${RAW_HASH}" >> $GITHUB_OUTPUT
 
   slsa-provenance:
     name: Generate SLSA 3 Provenance
