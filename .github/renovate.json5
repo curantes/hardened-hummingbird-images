@@ -1,10 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended",
-    ":pinDigests"
+    "config:best-practices"
   ],
-  "labels": ["dependencies", "container-factory"],
   "assignees": ["@curantes/maintainers"],
   "packageRules": [
     {
