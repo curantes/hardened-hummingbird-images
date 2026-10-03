@@ -72,56 +72,41 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image-digest: ${{ steps.digest.outputs.formatted }}
-      image-name: ${{ steps.repo.outputs.lowercase }}
+      image-digest: ${{ steps.build-push.outputs.digest }}
+      image-name: ${{ steps.meta.outputs.bake-target }}
     steps:
       - name: Checkout Source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Set Short Git SHA & Lowercase Repo
-        id: repo
-        run: |
-          echo "short_sha=$(git rev-parse --short HEAD)" >>GITHUB_OUTPUT
-          echo "lowercase=$(echo "{{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a6 # v3.8.0
 
-      - name: Build Production Image (Buildah)
-        id: build
-        uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
+      - name: Log in to GHCR
+        uses: docker/login-action@327cd5a69de6c009b9ce71bce8395f28e651bf99 # v3.0.0
         with:
-          image: ${{ steps.repo.outputs.lowercase }}/static
-          tags: |
-            latest
-            ${{ steps.repo.outputs.short_sha }}
-          context: ./images/static
-          containerfiles: ./images/static/Containerfile
-          oci: true
-
-      - name: Push to GHCR
-        id: push
-        uses: redhat-actions/push-to-registry@94ade333c38ecc0e60e94785125d9a52ca423b37 # v3.0.0
-        with:
-          image: ${{ steps.repo.outputs.lowercase }}/static
-          tags: |
-            latest
-            ${{ steps.repo.outputs.short_sha }}
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract & Format Digest for SLSA
-        id: digest
-        env:
-          PUSH_DIGEST: ${{ steps.push.outputs.registry-digest }}
-          BUILD_IMAGE: ${{ steps.build.outputs.image }}
-        run: |
-          if [ -n "$PUSH_DIGEST" ]; then
-            DIGEST="$PUSH_DIGEST"
-          else
-            DIGEST=$(buildah inspect --format '{{.FromImageDigest}}' "BUILD_IMAGE")
-          fi
+      - name: Extract Metadata
+        id: meta
+        uses: docker/metadata-action@369eb759139ea64404918e54731215b2447ab087 # v5.5.1
+        with:
+          images: ghcr.io/${{ github.repository }}/static
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
 
-          RAW_HASH="${DIGEST#sha256:}"
-          echo "formatted=sha256:{RAW_HASH}" >>GITHUB_OUTPUT
+      - name: Build and Push Image
+        id: build-push
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v6.5.0
+        with:
+          context: ./images/static
+          file: ./images/static/Containerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
 
   slsa-provenance:
     name: Generate SLSA 3 Provenance
