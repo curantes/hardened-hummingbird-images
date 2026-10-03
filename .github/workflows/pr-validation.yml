@@ -45,10 +45,15 @@ jobs:
           containerfiles: ${{ matrix.image.path }}/Containerfile
           oci: true
 
+      - name: Export Image for Trivy
+        env:
+          IMAGE: ${{ steps.build-image.outputs.image-with-tag }}
+        run: buildah push "$IMAGE" "docker-archive:$RUNNER_TEMP/image.tar"
+
       - name: Vulnerability Audit with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: 'hardened-${{ matrix.image.name }}:pr-${{ github.event.pull_request.number }}'
+          input: '${{ runner.temp }}/image.tar'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
