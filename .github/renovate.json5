@@ -38,7 +38,7 @@
       "customType": "regex",
       "fileMatch": ["^images/.*/Containerfile$"],
       "matchStrings": [
-        "ARG RUNTIME_DIGEST=(?sha256:[a-f0-9]{64})\\nFROM (?[^:]+):(?[^@]+)@\\${RUNTIME_DIGEST}"
+        "ARG RUNTIME_DIGEST=(?<currentDigest>sha256:[a-f0-9]{64})\\nFROM (?<depName>[^:]+):(?<currentValue>[^@]+)@\\${RUNTIME_DIGEST}"
       ],
       "datasourceTemplate": "docker"
     }
