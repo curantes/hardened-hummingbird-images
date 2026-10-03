@@ -58,27 +58,21 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-  publish-sign-attest:
-    name: Publish, Sign & Attest Static
+  publish-image:
+    name: Publish Production Image
     needs: build-and-audit
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      id-token: write
-      attestations: write
-      artifact-metadata: write
     outputs:
       image-digest: ${{ steps.push.outputs.registry-digest }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-
-      - name: Build Production Image
+      - name: Build Production Image (Buildah)
         uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
           image: ${{ github.repository_owner }}/hardened-hummingbird-images
@@ -97,23 +91,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate SPDX SBOM (Syft)
-        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-        with:
-          image: ghcr.io/\({{ github.repository_owner }}/hardened-hummingbird-images:static-\){{ github.sha }}
-          format: spdx-json
-          output-file: sbom-static.spdx.json
-
-      - name: Cosign OIDC Keyless Sign & Attach Attestation
-        run: |
-          IMAGE_REF="ghcr.io/\({{ github.repository_owner }}/hardened-hummingbird-images:static-\){{ github.sha }}"
-          DIGEST="${{ steps.push.outputs.registry-digest }}"
-          cosign sign --yes "\({IMAGE_REF}@\){DIGEST}"
-          cosign attest --yes --predicate sbom-static.spdx.json --type spdx "\({IMAGE_REF}@\){DIGEST}"
-
-      - name: Generate SLSA Provenance Attestation (Native)
-        uses: actions/attest-docker-build@v2
-        with:
-          subject-name: ghcr.io/${{ github.repository_owner }}/hardened-hummingbird-images
-          subject-digest: ${{ steps.push.outputs.registry-digest }}
-          push-to-registry: true
+  slsa-provenance:
+    name: Generate SLSA 3 Provenance
+    needs: publish-image
+    permissions:
+      actions: read
+      id-token: write
+      packages: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
+    with:
+      image: ghcr.io/${{ github.repository_owner }}/hardened-hummingbird-images
+      digest: ${{ needs.publish-image.outputs.image-digest }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
