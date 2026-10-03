@@ -9,15 +9,6 @@
   ],
   "packageRules": [
     {
-      "matchPackageNames": [
-        "redhat-actions/buildah-build",
-        "redhat-actions/push-to-registry",
-        "actions/attest-docker-build",
-        "actions/attest-build-provenance"
-      ],
-      "overrideDatasource": "github-releases"
-    },
-    {
       "matchPackageNames": ["registry.access.redhat.com/hi/static"],
       "groupName": "hummingbird-static-base",
       "commitMessageTopic": "base image registry.access.redhat.com/hi/static"
@@ -38,7 +29,7 @@
       "customType": "regex",
       "fileMatch": ["^images/.*/Containerfile$"],
       "matchStrings": [
-        "ARG RUNTIME_DIGEST=(?<currentDigest>sha256:[a-f0-9]{64})\\nFROM (?<depName>[^:]+):(?<currentValue>[^@]+)@\\${RUNTIME_DIGEST}"
+        "(?s)ARG RUNTIME_DIGEST=(?<currentDigest>sha256:[a-f0-9]{64})\\nFROM (?<depName>[^:]+):(?<currentValue>[^@]+)@\\${RUNTIME_DIGEST}"
       ],
       "datasourceTemplate": "docker"
     }
