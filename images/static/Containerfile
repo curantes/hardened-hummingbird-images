@@ -1,13 +1,10 @@
-ARG RUNTIME_DIGEST=sha256:a118f6589c3fc6cb0b7fa1c1546df67dfd8b5d86ad5bdacc3ede8508a0e93569
-
 # Base minimal static image from Red Hat Container Registry
-FROM registry.access.redhat.com/hi/static:latest@${RUNTIME_DIGEST}
+FROM registry.access.redhat.com/hi/static:latest@sha256:a118f6589c3fc6cb0b7fa1c1546df67dfd8b5d86ad5bdacc3ede8508a0e93569
 
 LABEL org.opencontainers.image.title="Hardened Static Base Image (based on Red Hat Static)" \
       org.opencontainers.image.vendor="Curantes" \
       org.opencontainers.image.source="https://github.com/curantes/hardened-hummingbird-images" \
-      org.opencontainers.image.base.name="registry.access.redhat.com/hi/static:latest" \
-      org.opencontainers.image.base.digest="${RUNTIME_DIGEST}"
+      org.opencontainers.image.base.name="registry.access.redhat.com/hi/static:latest"
 
 # Built-in non-root execution context (UID 10001)
 USER 10001:10001
