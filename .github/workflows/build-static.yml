@@ -72,22 +72,25 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image-digest: ${{ steps.push.outputs.registry-digest }}
+      image-digest: ${{ steps.digest.outputs.formatted }}
+      image-name: ${{ steps.repo.outputs.lowercase }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set Short Git SHA
-        id: vars
-        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Set Short Git SHA & Lowercase Repo
+        id: repo
+        run: |
+          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "lowercase=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Build Production Image (Buildah)
         uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
-          image: ${{ github.repository }}/static
+          image: ${{ steps.repo.outputs.lowercase }}/static
           tags: |
             latest
-            ${{ steps.vars.outputs.short_sha }}
+            ${{ steps.repo.outputs.short_sha }}
           context: ./images/static
           containerfiles: ./images/static/Containerfile
           oci: true
@@ -96,13 +99,23 @@ jobs:
         id: push
         uses: redhat-actions/push-to-registry@94ade333c38ecc0e60e94785125d9a52ca423b37 # v3.0.0
         with:
-          image: ${{ github.repository }}/static
+          image: ${{ steps.repo.outputs.lowercase }}/static
           tags: |
             latest
-            ${{ steps.vars.outputs.short_sha }}
+            ${{ steps.repo.outputs.short_sha }}
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Format Digest for SLSA
+        id: digest
+        run: |
+          RAW_DIGEST="${{ steps.push.outputs.registry-digest }}"
+          if [[ "$RAW_DIGEST" != sha256:* ]]; then
+            echo "formatted=sha256:${RAW_DIGEST}" >> $GITHUB_OUTPUT
+          else
+            echo "formatted=${RAW_DIGEST}" >> $GITHUB_OUTPUT
+          fi
 
   slsa-provenance:
     name: Generate SLSA 3 Provenance
@@ -113,7 +126,7 @@ jobs:
       packages: write
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
     with:
-      image: ghcr.io/${{ github.repository }}/static
+      image: ghcr.io/${{ needs.publish-image.outputs.image-name }}/static
       digest: ${{ needs.publish-image.outputs.image-digest }}
     secrets:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
