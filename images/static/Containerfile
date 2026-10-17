@@ -1,5 +1,5 @@
 # Base minimal static image from Red Hat Container Registry
-FROM registry.access.redhat.com/hi/static:latest@sha256:a118f6589c3fc6cb0b7fa1c1546df67dfd8b5d86ad5bdacc3ede8508a0e93569
+FROM registry.access.redhat.com/hi/static:latest@sha256:06afa90bf0c93d656d57170a16f7b4438a12766ca683061a5e769af2dc155a46
 
 LABEL org.opencontainers.image.title="Hardened Static Base Image (based on Red Hat Static)" \
       org.opencontainers.image.vendor="Curantes" \
