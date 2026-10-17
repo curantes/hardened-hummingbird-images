@@ -56,7 +56,8 @@ jobs:
           fi
 
           echo "Testing CA trust store presence..."
-          CID=$(docker create hardened-static:test)
+          # Pass a dummy command (true) so docker create succeeds on a distroless/commandless image
+          CID=$(docker create hardened-static:test true)
           docker cp "$CID:/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem" "$RUNNER_TEMP/tls-ca-bundle.pem"
           test -s "$RUNNER_TEMP/tls-ca-bundle.pem" || {
             echo "CA bundle not found or empty"
